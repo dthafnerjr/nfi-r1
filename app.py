@@ -17,6 +17,8 @@ Dependencies:
 Changelog:
     R1.0 (2026): Initial Streamlit interface. Five tabs.
                  Live Monte Carlo. Market signal overlay.
+    R1.1 (2026): τ drift + Sargent-Wallace amplifier. HES→PR two-pathway
+                 feedback. Fiscal Dominance fourth scenario added.
 """
 
 import streamlit as st
@@ -730,8 +732,9 @@ def tab_projections(weights: Dict[str, float]):
 def tab_scenarios(weights: Dict[str, float]):
     st.markdown("### Scenario Comparison")
     st.caption(
-        "Three structural scenarios compared across the same weight configuration. "
-        "Median trajectories shown. Click **Run All Scenarios** to compute."
+        "Four structural scenarios compared across the same weight configuration. "
+        "Median trajectories shown. Click **Run All Scenarios** to compute. "
+        "R1.1 adds **Fiscal Dominance** (Sargent-Wallace subordination path)."
     )
 
     horizon = st.selectbox("Horizon", [2035, 2040, 2050], index=1, key="scen_horizon")

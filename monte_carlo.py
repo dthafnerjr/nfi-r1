@@ -17,6 +17,12 @@ Changelog:
     R1.0 (2026): Initial implementation. Simplified DBN approximation
                  using conditional drift adjustments. Annual time steps.
                  Full pgmpy integration deferred to R2.
+    R1.1 (2026): (1) τ drift recalibrated 0.016→0.020/yr; Sargent-Wallace
+                 fiscal dominance amplifier added. (2) HES→Political
+                 Responsiveness two-pathway feedback (corrective below Zone
+                 boundary ~57; abstention above). (3) Fiscal Dominance
+                 fourth scenario: Sargent-Wallace subordination path,
+                 paradoxically highest Calvo event rate.
 """
 
 from __future__ import annotations
@@ -96,6 +102,22 @@ SCENARIOS: Dict[str, Dict] = {
         "tau_drift_multiplier": 0.55,
         "noise_multiplier": 0.80,
         "color": "#3DAD7A",
+    },
+    "fiscal_dominance": {
+        "label": "Fiscal Dominance — Sargent-Wallace subordination",
+        "description": (
+            "Fed subordinated to Treasury financing constraint. "
+            "Short-end rate cuts provide temporary debt service relief "
+            "but term premium expands as duration shortens and inflation "
+            "expectations de-anchor. Both Fed paths (tighten or ease) "
+            "raise τ under cost-push inflation. Sargent-Wallace amplifier "
+            "fully engaged. Paradoxically produces the highest Calvo "
+            "event rate of all scenarios."
+        ),
+        "drift_multiplier": 1.10,
+        "tau_drift_multiplier": 1.80,
+        "noise_multiplier": 1.25,
+        "color": "#9B59B6",
     },
 }
 
@@ -407,6 +429,8 @@ def _compute_feedback(
     - High τ pressures household economic security
     - Epistemic fragmentation reinforces political responsiveness decay
     - Household stress amplifies affective polarization
+    - R1.1: HES → Political Responsiveness two-pathway feedback
+      (corrective below Zone boundary ~57; abstention above)
     """
     feedback: Dict[str, float] = {}
 
@@ -421,6 +445,27 @@ def _compute_feedback(
     # Epistemic → Political Responsiveness (accelerates decay)
     ep_excess = max(0, dim_dict["epistemic_fragmentation"] - 55) / 45
     feedback["political_responsiveness"] = ep_excess * 0.15
+
+    # R1.1: HES → Political Responsiveness (two-pathway)
+    # The mechanism flips sign at the Zone boundary (~57 social composite).
+    # Below Zone boundary: material pain signals democratic accountability
+    #   → corrective feedback (drift reduction, PR score improves)
+    # Inside Zone (above ~57): pain produces abstention and nihilism
+    #   → accelerating feedback (PR score worsens faster)
+    # This implements the empirical observation that democratic correction
+    # capacity degrades once fracture reaches systemic levels.
+    ZONE_BOUNDARY = 57.0
+    hes_pr_excess = max(0, dim_dict["household_economic_security"] - 40) / 60
+    if social_composite < ZONE_BOUNDARY:
+        # Democratic correction pathway
+        feedback["political_responsiveness"] = (
+            feedback.get("political_responsiveness", 0) - hes_pr_excess * 0.20
+        )
+    else:
+        # Abstention / nihilism pathway
+        feedback["political_responsiveness"] = (
+            feedback.get("political_responsiveness", 0) + hes_pr_excess * 0.20
+        )
 
     # Political Responsiveness → Legislative Polarization
     pr_excess = max(0, dim_dict["political_responsiveness"] - 50) / 50
@@ -450,16 +495,31 @@ def _tau_drift(
     """
     Compute annual τ drift incorporating structural and political components.
 
-    Structural component: rollover repricing (~0.018/year baseline)
-    Political blockage: increases as social fracture rises
+    R1.1 changes:
+    - Structural rate raised 0.016 → 0.020/yr (sustained 5%+ 30Y environment)
+    - Sargent-Wallace amplifier: when τ is elevated, both Fed paths (tighten
+      or ease) raise τ under cost-push inflation, creating a policy trap.
+      Tightening → higher rollover cost; easing → term premium expansion +
+      duration shortening. Scales from 0 at τ=0.20 to +0.003/yr at τ°.
     """
-    # Structural drift from debt rollover repricing
-    structural = 0.016 * tau_mult
+    # R1.1: Structural drift raised from 0.016 to 0.020/yr
+    # Reflects the sustained 5%+ 30Y Treasury environment and the
+    # compounding effect of debt rollover at higher rates
+    structural = 0.020 * tau_mult
 
     # Political blockage amplifier (high fracture = less fiscal adjustment)
     blockage = 1.0 + max(0, (social_composite - 55) / 45) * 0.35
 
-    return structural * blockage
+    # R1.1: Sargent-Wallace fiscal dominance amplifier
+    # Both Fed policy paths raise τ under cost-push inflation:
+    #   Tighten → rollover repricing (direct τ increase)
+    #   Ease    → term premium expansion, duration shortening (indirect)
+    # Amplifier scales linearly from 0 at τ=0.20 to 0.003/yr at τ°_low.
+    # Scaled by tau_mult so fiscal_dominance scenario amplifies it fully.
+    sw_trap_range = max(0.01, TAU_CALVO_LOW - 0.20)
+    sw_amplifier = max(0, (tau_raw - 0.20) / sw_trap_range) * 0.003 * tau_mult
+
+    return structural * blockage + sw_amplifier
 
 
 def _apply_calvo_cascade(
