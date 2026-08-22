@@ -265,6 +265,33 @@ For complete methodology, theoretical foundations, and limitations: see the **Me
 For the full user manual: see the project repository documentation.
             """
         )
+
+        # ── Dimension weight definitions ──────────────────────────────────────
+        st.markdown("---")
+        st.markdown("### Dimension Weights — What each slider controls")
+        st.markdown(
+            "Each slider in the sidebar adjusts how much that dimension contributes "
+            "to the composite NFI score. Default: equal weighting (~9.1% each). "
+            "The composite always sums to 100% — raising one weight implicitly "
+            "dilutes the others. Press **Equal** to reset to baseline."
+        )
+        st.markdown("")
+        for dim in DIMENSIONS:
+            new_tag = "  `R1.1`" if dim.is_new else ""
+            st.markdown(
+                f"**{dim.label}**{new_tag}",
+            )
+            st.markdown(
+                f"{dim.description}",
+            )
+            st.markdown(
+                f"<span style='font-size:10px;color:#5c6370;font-family:IBM Plex Mono,monospace;'>"
+                f"Theory: {dim.theory}&nbsp;&nbsp;|&nbsp;&nbsp;Sources: {dim.sources}"
+                f"</span>",
+                unsafe_allow_html=True,
+            )
+            st.markdown("")
+
         st.markdown(
             "<div style='font-family:monospace;font-size:10px;color:#5c6370'>"
             "R1.1 · 11 dimensions · 1972–2026 · Dynamic Bayesian Network + Monte Carlo"
