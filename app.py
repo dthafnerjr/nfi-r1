@@ -34,7 +34,7 @@ from nfi_model import (
     compute_lorenz, tau_normalize, tau_calvo_effective,
     compute_calvo_proximity, DIMENSIONS, DIMENSION_KEYS,
     DIMENSION_COLORS, DIMENSION_LABELS, DIMENSION_SHORT,
-    TAU_STAR, TAU_CALVO_LOW, TAU_CALVO_HIGH, TAU_2024,
+    TAU_STAR, TAU_CALVO_LOW, TAU_CALVO_HIGH, TAU_2024, TAU_CURRENT,
 )
 from monte_carlo import run_monte_carlo, SCENARIOS, weight_sensitivity_analysis
 from market_signals import (
@@ -200,6 +200,79 @@ def add_threshold_line(fig, y, label, color, dash="dash", row=None, col=None):
     )
 
 
+# ── WHAT AM I LOOKING AT (INTRO PANEL) ──────────────────────────────────────
+def render_intro():
+    """Plain-English orientation panel for first-time visitors."""
+    with st.expander(
+        "👋 First time here? — What am I looking at?",
+        expanded=False,
+    ):
+        st.markdown(
+            f"""
+**The National Fracture Index (NFI) is a structured analytical tool for thinking probabilistically about the direction and speed of US institutional decline.**
+
+It is not a news site. It is not a political statement. It does not predict specific events or dates.
+What it does: takes eleven documented trends in American social, institutional, and fiscal life,
+combines them through a formal model, and asks — *given where these trends are now, what range of
+futures is structurally plausible over the next 5–20 years?*
+
+---
+
+### The short version
+
+| | |
+|---|---|
+| **The score (0–100)** | How much stress the system is under. Higher = worse. 2026 composite: ~**76 / 100** — well inside the Zone of Reduced Efficacy. |
+| **The Zone of Reduced Efficacy** | The red band on the charts (score > 60). Inside it, the political mechanisms that would normally correct problems are themselves impaired. The US has been in this zone since ~2012. |
+| **τ (tau)** | The fiscal tripwire. Net interest ÷ general fund revenue. When it crosses τ° (≈ 0.38–0.45), a self-reinforcing confidence crisis becomes structurally possible — not certain, but structurally plausible. Currently: **~0.30**. Distance to trigger: narrowing. |
+| **P(τ > τ°)** | The probability that τ crosses the trigger zone by a given year, across 10,000 simulated futures. Under current trajectory: very high within this decade. |
+
+---
+
+### Where to start
+
+1. **Overview tab** (you are here) — See where each of the 11 dimensions stands today vs. 1972. The radar chart and Lorenz curve show how fracture has spread and deepened.
+2. **τ Dashboard tab** — The fiscal stress panel. If you follow bond markets, this is where you'll spend the most time.
+3. **Projections tab** — Press **Run simulations**. Select a scenario and horizon. This is the core output: probability band charts showing where the composite and τ are likely to go.
+4. **Scenarios tab** — Compare Baseline / Stress / Recovery / Fiscal Dominance side by side.
+5. **Sidebar sliders** — Adjust dimension weights to explore sensitivity. Press **Equal** to reset to default.
+
+---
+
+### The 11 dimensions
+
+The model tracks: *Affective Polarization · Institutional Trust Deficit · Income Inequality ·
+Legislative Polarization · Epistemic Fragmentation · Elite Misalignment ·
+Fiscal Stress (τ) · Political Responsiveness · Institutional Capture ·
+Cultural Solidarity · Household Economic Security*
+
+Each is scored 0–100. Each interacts with the others through documented feedback pathways.
+High legislative polarization → fiscal blockage → τ rises faster.
+High household stress → epistemic withdrawal → political responsiveness falls.
+And so on.
+
+---
+
+### What this model is NOT
+
+- ❌ A prediction of when or whether a crisis will occur
+- ❌ A partisan argument
+- ❌ A validated forecasting model with out-of-sample track record
+- ✅ A structured instrument for probabilistic reasoning about a coupled system
+- ✅ An honest attempt to synthesize Rodgers, Piketty, Acemoglu & Robinson, Turchin, Becker, and the Club of Rome into a single coherent analytical framework
+
+For complete methodology, theoretical foundations, and limitations: see the **Methodology tab**.
+For the full user manual: see the project repository documentation.
+            """
+        )
+        st.markdown(
+            "<div style='font-family:monospace;font-size:10px;color:#5c6370'>"
+            "R1.1 · 11 dimensions · 1972–2026 · Dynamic Bayesian Network + Monte Carlo"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+
 # ── TAB 1: OVERVIEW ──────────────────────────────────────────────────────────
 def tab_overview(df: pd.DataFrame, weights: Dict[str, float]):
     composite = compute_composite(df, weights)
@@ -210,7 +283,7 @@ def tab_overview(df: pd.DataFrame, weights: Dict[str, float]):
     cols = st.columns([2] + [1] * 6)
     with cols[0]:
         st.metric(
-            "Composite NFI (2024)",
+            "Composite NFI (2026 est.)",
             f"{current_score:.0f} / 100",
             delta=f"+{delta:.0f} from 1972",
             delta_color="inverse",
@@ -268,8 +341,19 @@ def tab_overview(df: pd.DataFrame, weights: Dict[str, float]):
         annotation_font_size=9,
     )
 
+    # Mark 2025-2026 as estimated
+    fig.add_vrect(
+        x0=2024.5, x1=df["year"].max() + 0.5,
+        fillcolor="rgba(255,255,255,0.04)",
+        line_width=0,
+        annotation_text="est.",
+        annotation_position="top right",
+        annotation_font_color=C["muted"],
+        annotation_font_size=9,
+    )
+
     fig.update_layout(
-        title="NFI Composite & Component Indicators — 1972–2024",
+        title="NFI Composite & Component Indicators — 1972–2026 (2025–26 estimated)",
         xaxis_title="Year",
         yaxis_title="Score (0–100)",
         yaxis_range=[0, 100],
@@ -374,7 +458,8 @@ def tab_tau(tau_df: pd.DataFrame):
         "Fiscal carrying capacity metric. "
         f"**τ\\* = {TAU_STAR:.3f}** (mathematical ceiling) · "
         f"**τ° ≈ {TAU_CALVO_LOW:.2f}–{TAU_CALVO_HIGH:.2f}** (Calvo trigger) · "
-        f"**Current τ = {TAU_2024:.3f}** (normalized: 36/100)"
+        f"**Current τ ≈ {TAU_CURRENT:.3f}** (2026 YTD est., normalized: ~39/100) · "
+        f"FY2025 actual: {TAU_2024:.3f}"
     )
 
     col_m, col_s = st.columns([3, 1])
@@ -482,13 +567,14 @@ def tab_tau(tau_df: pd.DataFrame):
 
         # Current value annotation
         fig_tau.add_trace(go.Scatter(
-            x=[2024], y=[TAU_2024],
+            x=[2024, 2025, 2026],
+            y=[TAU_2024, 0.282, TAU_CURRENT],
             mode="markers+text",
             marker=dict(color="#6EC9C4", size=10),
-            text=[f"  τ={TAU_2024:.3f}"],
+            text=[f"  τ={TAU_2024:.3f}", "  0.282", f"  ~{TAU_CURRENT:.3f}★"],
             textfont=dict(color="#6EC9C4", size=10),
-            name="2024",
-            showlegend=False,
+            name="2025–26 est.",
+            showlegend=True,
         ))
 
         fig_tau.update_layout(
@@ -675,7 +761,7 @@ def tab_projections(weights: Dict[str, float]):
                   delta=f"{results.n_calvo_events/results.n_runs:.1%} of runs",
                   delta_color="inverse")
     with info_cols[2]:
-        median_2040_idx = min(horizon - 2024, len(years) - 1)
+        median_2040_idx = min(horizon - 2026, len(years) - 1)
         st.metric(f"Median NFI {horizon}",
                   f"{results.composite_pct[2, median_2040_idx]:.1f}")
     with info_cols[3]:
@@ -932,6 +1018,7 @@ def main():
     ])
 
     with tab1:
+        render_intro()
         tab_overview(df, weights)
     with tab2:
         tab_tau(tau_df)

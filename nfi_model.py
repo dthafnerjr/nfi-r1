@@ -265,7 +265,8 @@ TAU_STAR: float = 0.769       # Mathematical ceiling
 TAU_CALVO_LOW: float = 0.380  # Calvo trigger lower bound
 TAU_CALVO_HIGH: float = 0.450 # Calvo trigger upper bound
 TAU_CALVO_MID: float = 0.415  # Calvo trigger midpoint estimate
-TAU_2024: float = 0.278       # Current observed value
+TAU_2024: float = 0.278       # FY2024 historical (kept for backward compat)
+TAU_CURRENT: float = 0.300    # R1.1: 2026 YTD estimated (FY2025 actual: 0.282; 2026 est: 0.300)
 
 DIMENSION_KEYS: List[str] = [d.key for d in DIMENSIONS]
 DIMENSION_COLORS: Dict[str, str] = {d.key: d.color for d in DIMENSIONS}

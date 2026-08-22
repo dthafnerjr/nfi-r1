@@ -34,7 +34,7 @@ from scipy.special import expit  # sigmoid function
 
 from nfi_model import (
     DIMENSION_KEYS, TAU_STAR, TAU_CALVO_LOW, TAU_CALVO_HIGH,
-    TAU_CALVO_MID, tau_calvo_effective, compute_composite, ASSUMPTIONS
+    TAU_CALVO_MID, TAU_CURRENT, tau_calvo_effective, compute_composite, ASSUMPTIONS
 )
 
 # ── ASSUMPTIONS ─────────────────────────────────────────────────────────────
@@ -258,19 +258,19 @@ def run_monte_carlo(
     total_w = sum(weights.values())
     weights = {k: v / total_w for k, v in weights.items()}
 
-    # 2024 starting values
+    # R1.1: 2026 YTD starting values (updated from 2024 baseline)
     defaults_2024 = {
-        "affective_polarization": 70.0,
-        "trust_deficit": 71.0,
-        "income_inequality": 66.0,
-        "legislative_polarization": 86.0,
-        "epistemic_fragmentation": 79.0,
-        "elite_misalignment": 72.0,
-        "fiscal_stress_tau": 36.0,
-        "political_responsiveness": 78.0,
-        "institutional_capture": 74.0,
-        "cultural_solidarity": 72.0,
-        "household_economic_security": 66.0,
+        "affective_polarization": 74.0,
+        "trust_deficit": 75.0,
+        "income_inequality": 68.0,
+        "legislative_polarization": 88.0,
+        "epistemic_fragmentation": 83.0,
+        "elite_misalignment": 74.0,
+        "fiscal_stress_tau": 39.0,
+        "political_responsiveness": 81.0,
+        "institutional_capture": 77.0,
+        "cultural_solidarity": 74.0,
+        "household_economic_security": 68.0,
     }
     if start_values:
         defaults_2024.update(start_values)
@@ -280,8 +280,8 @@ def run_monte_carlo(
     tau_mult = scen["tau_drift_multiplier"]
     noise_mult = scen["noise_multiplier"]
 
-    n_years = horizon - 2024 + 1
-    years = np.arange(2024, horizon + 1)
+    n_years = horizon - 2026 + 1
+    years = np.arange(2026, horizon + 1)
 
     # Storage: shape (n_runs, n_years, n_dims)
     n_dims = len(DIMENSION_KEYS)
@@ -289,8 +289,8 @@ def run_monte_carlo(
     tau_raw_trajectories = np.zeros((n_runs, n_years))
     calvo_fired = np.zeros(n_runs, dtype=bool)
 
-    # Convert 2024 τ normalized back to raw for simulation
-    tau_raw_2024 = TAU_2024_RAW = 0.278
+    # R1.1: Start from 2026 YTD estimated τ
+    tau_raw_2024 = TAU_CURRENT  # 0.300 (2026 estimate)
 
     for run in range(n_runs):
         state = np.array([defaults_2024[k] for k in DIMENSION_KEYS], dtype=float)
@@ -382,10 +382,10 @@ def run_monte_carlo(
     # --- Threshold crossing probabilities ---
     calvo_probs = {}
     zone_exit_probs = {}
-    for target_year in [2026, 2028, 2030, 2032, 2035, 2040]:
+    for target_year in [2028, 2030, 2032, 2035, 2040, 2045]:
         if target_year > horizon:
             continue
-        t_idx = target_year - 2024
+        t_idx = target_year - 2026
         # P(τ > τ°_low_effective)
         # Use mean social composite at that time point
         mean_social = np.mean([
@@ -608,7 +608,7 @@ def weight_sensitivity_analysis(
             seed=seed + idx,
         )
         calvo_probs[idx] = results.calvo_crossing_probs.get(target_year, 0.0)
-        t_idx = target_year - 2024
+        t_idx = target_year - 2026
         composite_medians[idx] = results.composite_pct[2, t_idx]  # 50th pct
 
     return {
