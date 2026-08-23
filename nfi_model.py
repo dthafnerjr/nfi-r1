@@ -172,8 +172,9 @@ DIMENSIONS: List[DimensionMeta] = [
             "τ = Net Interest / General Fund Revenue. Dual status: "
             "NFI dimension AND potential cascade trigger. "
             "τ* = 0.769 (mathematical ceiling). "
-            "τ° ≈ 0.38-0.45 (Calvo discontinuity trigger). "
-            "Current (2024): τ ≈ 0.278."
+            "τ° ≈ 0.38–0.45 (Calvo discontinuity trigger). "
+            "FY2024 actual: τ = 0.278. FY2025 actual: τ = 0.282. "
+            "Current (2026 est.): τ ≈ 0.300."
         ),
     ),
     DimensionMeta(
